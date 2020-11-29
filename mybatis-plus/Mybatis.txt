@@ -1,0 +1,346 @@
+
+
+## **快速入门**
+
+地址：
+
+使用第三方插件：
+
+1、导入对应的依赖
+
+2、研究依赖如何配置
+
+3、代码如何编写？
+
+4、提高扩展技术
+
+### 1 特性
+
+- **无侵入**：只做增强不做改变，引入它不会对现有工程产生影响，如丝般顺滑
+- **损耗小**：启动即会自动注入基本 CURD，性能基本无损耗，直接面向对象操作
+- **强大的 CRUD 操作**：内置通用 Mapper、通用 Service，仅仅通过少量配置即可实现单表大部分 CRUD 操作，更有强大的条件构造器，满足各类使用需求
+- **支持 Lambda 形式调用**：通过 Lambda 表达式，方便的编写各类查询条件，无需再担心字段写错
+- **支持主键自动生成**：支持多达 4 种主键策略（内含分布式唯一 ID 生成器 - Sequence），可自由配置，完美解决主键问题
+- **支持 ActiveRecord 模式**：支持 ActiveRecord 形式调用，实体类只需继承 Model 类即可进行强大的 CRUD 操作
+- **支持自定义全局通用操作**：支持全局通用方法注入（ Write once, use anywhere ）
+- **内置代码生成器**：采用代码或者 Maven 插件可快速生成 Mapper 、 Model 、 Service 、 Controller 层代码，支持模板引擎，更有超多自定义配置等您来使用
+- **内置分页插件**：基于 MyBatis 物理分页，开发者无需关心具体操作，配置好插件之后，写分页等同于普通 List 查询
+- **分页插件支持多种数据库**：支持 MySQL、MariaDB、Oracle、DB2、H2、HSQL、SQLite、Postgre、SQLServer 等多种数据库
+- **内置性能分析插件**：可输出 Sql 语句以及其执行时间，建议开发测试时启用该功能，能快速揪出慢查询
+- **内置全局拦截插件**：提供全表 delete 、 update 操作智能分析阻断，也可自定义拦截规则，预防误操作
+
+### 2 数据库
+
+```sql
+DROP TABLE IF EXISTS user;
+
+CREATE TABLE user
+(
+	id BIGINT(20) NOT NULL COMMENT '主键ID',
+	name VARCHAR(30) NULL DEFAULT NULL COMMENT '姓名',
+	age INT(11) NULL DEFAULT NULL COMMENT '年龄',
+	email VARCHAR(50) NULL DEFAULT NULL COMMENT '邮箱',
+	PRIMARY KEY (id)
+);
+INSERT INTO `bilbil_mybatisplus`.`user`(`id`, `name`, `age`, `email`) VALUES (1, 'Jone', 18, 'test1@baomidou.com');
+INSERT INTO `bilbil_mybatisplus`.`user`(`id`, `name`, `age`, `email`) VALUES (2, 'Jack', 20, 'test2@baomidou.com');
+INSERT INTO `bilbil_mybatisplus`.`user`(`id`, `name`, `age`, `email`) VALUES (3, 'Tom', 28, 'test3@baomidou.com');
+INSERT INTO `bilbil_mybatisplus`.`user`(`id`, `name`, `age`, `email`) VALUES (4, 'Sandy', 21, 'test4@baomidou.com');
+INSERT INTO `bilbil_mybatisplus`.`user`(`id`, `name`, `age`, `email`) VALUES (5, 'Billie', 24, 'test5@baomidou.com');
+
+```
+
+### 3 导入依赖
+
+```properties
+<!--数据库驱动 --><dependency>    
+<groupId>mysql</groupId>    
+<artifactId>mysql-connector-java</artifactId>
+</dependency>
+
+<!--lombok --><dependency>    
+<groupId>org.projectlombok</groupId>    
+<artifactId>lombok</artifactId>
+</dependency>
+
+<!-- --><dependency>    
+<groupId>com.baomidou</groupId>    
+<artifactId>mybatis-plus-boot-starter</artifactId>   
+<version>3.0.5</version>
+</dependency>
+```
+
+
+
+### 4 实例
+
+```properties
+spring.datasource.username=rootspring.datasource.password=rootspring.datasource.url=jdbc:mysql://localhost:3306/bilbil_mybatisplus?\  useSSL=false&useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
+
+```java
+@SpringBootApplicationpublic class MybatisPlusApplication {    public static void main(String[] args) {        SpringApplication.run(MybatisPlusApplication.class, args);    }}
+```
+
+```java
+@Mapper
+@Repository   //代表dao 持久层
+public interface UserMapper extends BaseMapper <User>{    //所有的crud操作都好了 ，不需要配置一大堆的文件}
+```
+
+注意@Mapper去扫描包下的接口
+
+### 5 配置日志
+
+```properties
+# 配置日志
+mybatis-plus.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
+```
+
+![1604715356250](assets/1604715356250.png)
+
+## CRUD
+
+```java
+@Test
+    void testInsert(){
+        User user = new User();
+        user.setName("lhd");
+        user.setAge(16);
+        user.setEmail("11111111222");
+
+        int result = userMapper.insert(user); //自动生成id
+//        userMapper.insert(user);
+        System.out.println(result);//受影响的行数
+        System.out.println(user);//发现id自动回填
+
+    }
+```
+
+![1604736990021](assets/1604736990021.png)
+
+> 数据插入的id的默认值为全局的唯一id
+
+### 1 主键生成策略
+
+> 默认 @TableId(type =  IdType.ID_WORKER)
+
+分布式系统唯一id生成：https://www.cnblogs.com/haoxinyue/p/5208136.html
+
+雪花算法：
+
+snowflake是Twitter开源的分布式ID生成算法，结果是一个long型的ID。其核心思想是：使用41bit作为毫秒数，10bit作为机器的ID（5个bit是数据中心，5个bit的机器ID），12bit作为毫秒内的流水号（意味着每个节点在每毫秒可以产生 4096 个 ID），最后还有一个符号位，永远是0。
+
+> 其他源码的解释
+
+```java
+AUTO(0),  //数据库自增
+NONE(1), //未设置主键
+INPUT(2),//手动输入
+ID_WORKER(3),//默认的全局唯一id
+UUID(4),//全局唯一id    uuid
+ID_WORKER_STR(5); //ID_WORKER 字符串表示
+```
+
+### 2 自动填充
+
+> 数据库级别
+
+1、在表中新增字段create_time、update_time
+
+![1605053316098](C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\1605053316098.png)
+
+2、再次测试插入方法，我们需要和实体类进行同步
+
+```
+@TableField(fill = FieldFill.INSERT)private Date creatre_time;@TableField(fill = FieldFill.INSERT_UPDATE)private Date update_time;
+```
+
+3、编写处理器来处理这个注解即可！  handler
+
+```java
+package com.lin.mybatis_plus.handler;
+
+import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import jdk.internal.instrumentation.Logger;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.stereotype.Component;
+
+import java.util.Date;
+
+@Slf4j
+@Component
+public class MyMetaObjectHandler implements MetaObjectHandler {
+
+
+    //插入
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        log.info("开始 插入");
+        this.setFieldValByName("creatre_time",new Date(),metaObject);
+        this.setFieldValByName("update_time",new Date(),metaObject);
+
+    }
+
+    //更新
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        log.info("开始 更新");
+        this.setFieldValByName("update_time",new Date(),metaObject);
+
+    }
+}
+
+```
+
+
+
+4、测试插入
+
+5、测试更新、观察时间即可
+
+
+
+### 3 乐观锁
+
+> 乐观锁：顾名思义十分乐观，他总认为不会出现问题，无论干什么都不会去上锁！如果出现了问题，再次更新值测试。
+>
+> 悲观锁：十分悲观，他认为出现问题，无论干什么都会上锁！再去操作
+
+
+乐观锁实现方式：
+
+> - 取出记录时，获取当前version
+> - 更新时，带上这个version
+> - 执行更新时， set version = newVersion where version = oldVersion
+> - 如果version不对，就更新失败
+
+> 测试一下MP的乐观锁插件
+
+2、我们实体类加对应的字段
+
+```java
+@Version
+    private Integer version;
+```
+
+3、注册乐观锁插件
+
+```java
+@MapperScan("com.lin.mybatis_plus.mapper")
+@EnableTransactionManagement   //自动管理事物
+@Configuration  //配置类
+public class MyBatisPlusConfig {
+
+
+    //注册乐观锁插件
+    @Bean
+    public OptimisticLockerInterceptor  optimisticlockerinterceptor(){
+        return new OptimisticLockerInterceptor();
+    }
+
+}
+```
+
+```java
+//测试成功的案例
+    @Test
+    void OptimisticLocker(){
+        //11111111
+        // 1、查询用户信息
+        User user = userMapper.selectById(1l);
+        // 2、修改用户信息
+        user.setName("jone11111111");
+        // 3、执行更新操作
+        userMapper.updateById(user);
+    }
+
+
+    //测试失败的案例
+    @Test
+    void OptimisticLocker1(){
+        //11111111
+        // 1、查询用户信息
+        User user = userMapper.selectById(1l);
+        // 2、修改用户信息
+        user.setName("jone11111111");
+        // 3、执行更新操作
+        //222222222222
+        // 1、查询用户信息
+        User user2 = userMapper.selectById(1l);
+        // 2、修改用户信息
+        user.setName("jone2222222");
+        // 3、执行更新操作
+        userMapper.updateById(user2);
+        userMapper.updateById(user);
+    }
+```
+
+按条件查询
+
+```java
+//按照id查询
+    @Test
+    void testselectByid(){
+        User user2 = userMapper.selectById(1l);
+        System.out.println(user2);
+    }
+
+    //按照条件批量查询
+    @Test
+    void testselectBylisy(){
+        List<User> users = userMapper.selectBatchIds(Arrays.asList(1,2,3));
+        users.forEach(System.out::print);
+    }
+    //按条件查询
+    @Test
+    void testselectBymap(){
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("name","Tom");
+        List<User> users = userMapper.selectByMap(map);
+        users.forEach(System.out::print);
+    }
+```
+
+### 4 查询
+
+```java
+    @Test
+    void test1() {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.isNotNull("name").isNotNull("email").ge("age",12);
+        userMapper.selectList(wrapper).forEach(System.out::print);
+    }
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
